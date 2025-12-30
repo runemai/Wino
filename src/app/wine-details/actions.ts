@@ -62,21 +62,21 @@ const wineFormSchema = z.object({
 
 export async function saveWineAction(formData: FormData) {
   try {
-    const file = formData.get("file");
-    const hasFile = file instanceof Blob && file.size > 0;
+  const file = formData.get("file");
+  const hasFile = file instanceof Blob && file.size > 0;
 
-    const parsed = wineFormSchema.safeParse({
-      producer: formData.get("producer"),
-      appellation: formData.get("appellation") || null,
-      cuvee: formData.get("cuvee") || null,
-      vintage: formData.get("vintage") || null,
-      type: formData.get("type"),
-      country: formData.get("country") || null,
-      wine_district: formData.get("wine_district") || null,
-      grapes: formData.get("grapes") || null,
-      alcohol: formData.get("alcohol") || null,
-      vineyard: formData.get("vineyard") || null,
-      consumed_date: formData.get("consumed_date") || new Date().toISOString(),
+  const parsed = wineFormSchema.safeParse({
+    producer: formData.get("producer"),
+    appellation: formData.get("appellation") || null,
+    cuvee: formData.get("cuvee") || null,
+    vintage: formData.get("vintage") || null,
+    type: formData.get("type"),
+    country: formData.get("country") || null,
+    wine_district: formData.get("wine_district") || null,
+    grapes: formData.get("grapes") || null,
+    alcohol: formData.get("alcohol") || null,
+    vineyard: formData.get("vineyard") || null,
+    consumed_date: formData.get("consumed_date") || new Date().toISOString(),
       balance: (() => {
         const val = formData.get("balance");
         return val && typeof val === "string" && val.trim() ? val : null;
@@ -97,84 +97,84 @@ export async function saveWineAction(formData: FormData) {
         const val = formData.get("smagsnote");
         return val && typeof val === "string" && val.trim() ? val.trim() : null;
       })(),
-    });
+  });
 
-    if (!parsed.success) {
+  if (!parsed.success) {
       console.error("Validation fejl:", parsed.error.issues);
       const firstError = parsed.error.issues[0];
       throw new Error(firstError?.message ?? "Ugyldige felter");
-    }
+  }
 
-    let serviceRole: SupabaseClient<Database>;
-    let bucket: string;
+  let serviceRole: SupabaseClient<Database>;
+  let bucket: string;
 
-    try {
-      const resolved = createSupabaseServiceClient();
-      serviceRole = resolved.client;
-      bucket = resolved.bucket;
-    } catch (cause) {
-      console.error("Supabase service client misconfigured", cause);
+  try {
+    const resolved = createSupabaseServiceClient();
+    serviceRole = resolved.client;
+    bucket = resolved.bucket;
+  } catch (cause) {
+    console.error("Supabase service client misconfigured", cause);
+    throw new Error(
+      "Supabase mangler konfiguration. Udfyld dine miljøvariabler og prøv igen.",
+    );
+  }
+
+  let imageUrl: string | null = null;
+
+  if (hasFile && file instanceof Blob) {
+    const filename = `${nanoid()}-${Date.now()}.webp`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    const { data: upload, error: uploadError } = await serviceRole.storage
+      .from(bucket)
+      .upload(`captures/${filename}`, buffer, {
+        cacheControl: "3600",
+        contentType: file.type || "image/webp",
+      });
+
+    if (uploadError) {
       throw new Error(
-        "Supabase mangler konfiguration. Udfyld dine miljøvariabler og prøv igen.",
+        `Kunne ikke gemme billedet i Supabase Storage: ${uploadError.message}`,
       );
     }
 
-    let imageUrl: string | null = null;
+    const { data: publicUrlData } = serviceRole.storage
+      .from(bucket)
+      .getPublicUrl(upload.path);
 
-    if (hasFile && file instanceof Blob) {
-      const filename = `${nanoid()}-${Date.now()}.webp`;
-      const buffer = Buffer.from(await file.arrayBuffer());
+    imageUrl = publicUrlData.publicUrl;
+  }
 
-      const { data: upload, error: uploadError } = await serviceRole.storage
-        .from(bucket)
-        .upload(`captures/${filename}`, buffer, {
-          cacheControl: "3600",
-          contentType: file.type || "image/webp",
-        });
-
-      if (uploadError) {
-        throw new Error(
-          `Kunne ikke gemme billedet i Supabase Storage: ${uploadError.message}`,
-        );
-      }
-
-      const { data: publicUrlData } = serviceRole.storage
-        .from(bucket)
-        .getPublicUrl(upload.path);
-
-      imageUrl = publicUrlData.publicUrl;
-    }
-
-    const consumedDate = parsed.data.consumed_date 
-      ? new Date(parsed.data.consumed_date + "T00:00:00").toISOString()
-      : new Date().toISOString();
+  const consumedDate = parsed.data.consumed_date 
+    ? new Date(parsed.data.consumed_date + "T00:00:00").toISOString()
+    : new Date().toISOString();
 
     const { data: insertedWine, error: insertError } = await serviceRole.from("wines").insert({
-      producer: parsed.data.producer,
-      appellation: parsed.data.appellation ?? null,
-      cuvee: parsed.data.cuvee ?? null,
-      vintage: parsed.data.vintage ?? null,
-      type: parsed.data.type,
-      country: parsed.data.country ?? null,
-      wine_district: parsed.data.wine_district ?? null,
-      grapes: parsed.data.grapes ?? null,
-      alcohol: parsed.data.alcohol ?? null,
-      vineyard: parsed.data.vineyard ?? null,
-      image_url: imageUrl ?? null,
-      created_at: consumedDate,
-      balance: parsed.data.balance ?? undefined,
-      length: parsed.data.length ?? undefined,
-      intensity: parsed.data.intensity ?? undefined,
-      complexity: parsed.data.complexity ?? undefined,
-      smagsnote: parsed.data.smagsnote ?? null,
-    }).select().single();
+    producer: parsed.data.producer,
+    appellation: parsed.data.appellation ?? null,
+    cuvee: parsed.data.cuvee ?? null,
+    vintage: parsed.data.vintage ?? null,
+    type: parsed.data.type,
+    country: parsed.data.country ?? null,
+    wine_district: parsed.data.wine_district ?? null,
+    grapes: parsed.data.grapes ?? null,
+    alcohol: parsed.data.alcohol ?? null,
+    vineyard: parsed.data.vineyard ?? null,
+    image_url: imageUrl ?? null,
+    created_at: consumedDate,
+    balance: parsed.data.balance ?? null,
+    length: parsed.data.length ?? null,
+    intensity: parsed.data.intensity ?? null,
+    complexity: parsed.data.complexity ?? null,
+    smagsnote: parsed.data.smagsnote ?? null,
+  }).select().single();
 
-    if (insertError) {
+  if (insertError) {
       console.error("Insert error:", insertError);
-      throw new Error(
-        `Kunne ikke gemme vinen i databasen: ${insertError.message}`,
-      );
-    }
+    throw new Error(
+      `Kunne ikke gemme vinen i databasen: ${insertError.message}`,
+    );
+  }
 
     if (!insertedWine) {
       console.error("Inserted wine is null or undefined");
@@ -188,8 +188,8 @@ export async function saveWineAction(formData: FormData) {
 
     const wineId = insertedWine.id as string;
 
-    // Automatisk hent critic reviews i baggrunden (non-blocking)
-    // Dette sker asynkront så det ikke blokerer response
+  // Automatisk hent critic reviews i baggrunden (non-blocking)
+  // Dette sker asynkront så det ikke blokerer response
     // Kald async funktion uden at vente - dette skal IKKE påvirke response
     generateCriticReviewsForWine(wineId, {
       producer: parsed.data.producer,
@@ -205,7 +205,7 @@ export async function saveWineAction(formData: FormData) {
       console.error("Kunne ikke hente critic reviews automatisk:", err);
     });
 
-    revalidatePath("/");
+  revalidatePath("/");
     // Revalidate også den specifikke wine route
     revalidatePath(`/wines/${wineId}/edit`);
 
