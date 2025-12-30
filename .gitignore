@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# Capacitor build artifacts (should not be committed)
+/public/_next/
+
 # production
 /build
 

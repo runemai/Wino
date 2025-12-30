@@ -19,6 +19,13 @@ console.log('🔨 Building Next.js app for Capacitor...\n');
 process.env.CAPACITOR = '1';
 
 try {
+  // Clean up any existing _next folder in public (shouldn't exist, but just in case)
+  const publicNextDir = path.join(publicDir, '_next');
+  if (fs.existsSync(publicNextDir)) {
+    console.log('🧹 Cleaning up existing public/_next folder...');
+    fs.rmSync(publicNextDir, { recursive: true, force: true });
+  }
+
   // Build Next.js
   console.log('📦 Building Next.js...');
   execSync('pnpm build', { 
@@ -28,17 +35,18 @@ try {
   });
 
   // Copy static files from .next/static to public/_next/static
+  // NOTE: This is only for Capacitor builds. These files should not be committed.
   const staticSource = path.join(nextDir, 'static');
   const staticDest = path.join(publicDir, '_next', 'static');
   
   if (fs.existsSync(staticSource)) {
-    console.log('📋 Copying static assets...');
+    console.log('📋 Copying static assets for Capacitor...');
     if (fs.existsSync(staticDest)) {
       fs.rmSync(staticDest, { recursive: true, force: true });
     }
     fs.mkdirSync(path.dirname(staticDest), { recursive: true });
     fs.cpSync(staticSource, staticDest, { recursive: true });
-    console.log('✅ Static assets copied');
+    console.log('✅ Static assets copied to public/_next/static');
   }
 
   // Ensure index.html exists in public
@@ -68,6 +76,8 @@ try {
 
   console.log('\n✅ Build complete! Ready for Capacitor sync.');
   console.log('💡 Run: pnpm cap:sync\n');
+  console.log('⚠️  NOTE: The public/_next/ folder is for Capacitor only.');
+  console.log('   It will be ignored by git and should not be committed.\n');
   
 } catch (error) {
   console.error('\n❌ Build failed:', error.message);
