@@ -8,14 +8,13 @@
     "build:capacitor": "node scripts/build-for-capacitor.js",
     "start": "next start",
     "lint": "eslint",
-    "cap:sync": "PATH=\"../node-v22.11.0-darwin-arm64/bin:$PATH\" npx --yes @capacitor/cli@latest sync ios",
+    "cap:sync": "PATH=\"../node-v22.11.0-darwin-arm64/bin:$PATH\" ../node-v22.11.0-darwin-arm64/bin/node ./node_modules/@capacitor/cli/bin/capacitor sync ios",
     "cap:ios": "open ios/App/App.xcodeproj",
-    "cap:add:ios": "PATH=\"../node-v22.11.0-darwin-arm64/bin:$PATH\" npx --yes @capacitor/cli@latest add ios",
+    "cap:add:ios": "PATH=\"../node-v22.11.0-darwin-arm64/bin:$PATH\" ../node-v22.11.0-darwin-arm64/bin/node ./node_modules/@capacitor/cli/bin/capacitor add ios",
     "cap:build": "pnpm build:capacitor && pnpm cap:sync"
   },
   "dependencies": {
     "@capacitor/camera": "^8.0.0",
-    "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
     "@capacitor/filesystem": "^8.0.0",
     "@capacitor/ios": "^8.0.0",
@@ -39,6 +38,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
