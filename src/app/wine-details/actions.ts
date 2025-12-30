@@ -162,10 +162,10 @@ export async function saveWineAction(formData: FormData) {
       vineyard: parsed.data.vineyard ?? null,
       image_url: imageUrl ?? null,
       created_at: consumedDate,
-      balance: parsed.data.balance ?? null,
-      length: parsed.data.length ?? null,
-      intensity: parsed.data.intensity ?? null,
-      complexity: parsed.data.complexity ?? null,
+      balance: parsed.data.balance ?? undefined,
+      length: parsed.data.length ?? undefined,
+      intensity: parsed.data.intensity ?? undefined,
+      complexity: parsed.data.complexity ?? undefined,
       smagsnote: parsed.data.smagsnote ?? null,
     }).select().single();
 
