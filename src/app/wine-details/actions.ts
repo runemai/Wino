@@ -149,25 +149,42 @@ export async function saveWineAction(formData: FormData) {
     ? new Date(parsed.data.consumed_date + "T00:00:00").toISOString()
     : new Date().toISOString();
 
-    const { data: insertedWine, error: insertError } = await serviceRole.from("wines").insert({
-    producer: parsed.data.producer,
-    appellation: parsed.data.appellation ?? null,
-    cuvee: parsed.data.cuvee ?? null,
-    vintage: parsed.data.vintage ?? null,
-    type: parsed.data.type,
-    country: parsed.data.country ?? null,
-    wine_district: parsed.data.wine_district ?? null,
-    grapes: parsed.data.grapes ?? null,
-    alcohol: parsed.data.alcohol ?? null,
-    vineyard: parsed.data.vineyard ?? null,
-    image_url: imageUrl ?? null,
-    created_at: consumedDate,
-    balance: parsed.data.balance ?? null,
-    length: parsed.data.length ?? null,
-    intensity: parsed.data.intensity ?? null,
-    complexity: parsed.data.complexity ?? null,
-    smagsnote: parsed.data.smagsnote ?? null,
-  }).select().single();
+    // Build insert object - exclude number fields if they are null/undefined to avoid type errors
+    const insertPayload: any = {
+      producer: parsed.data.producer,
+      appellation: parsed.data.appellation ?? null,
+      cuvee: parsed.data.cuvee ?? null,
+      vintage: parsed.data.vintage ?? null,
+      type: parsed.data.type,
+      country: parsed.data.country ?? null,
+      wine_district: parsed.data.wine_district ?? null,
+      grapes: parsed.data.grapes ?? null,
+      alcohol: parsed.data.alcohol ?? null,
+      vineyard: parsed.data.vineyard ?? null,
+      image_url: imageUrl ?? null,
+      created_at: consumedDate,
+      smagsnote: parsed.data.smagsnote ?? null,
+    };
+
+    // Only add number fields if they have valid values (not null/undefined)
+    if (parsed.data.balance !== null && parsed.data.balance !== undefined) {
+      insertPayload.balance = parsed.data.balance;
+    }
+    if (parsed.data.length !== null && parsed.data.length !== undefined) {
+      insertPayload.length = parsed.data.length;
+    }
+    if (parsed.data.intensity !== null && parsed.data.intensity !== undefined) {
+      insertPayload.intensity = parsed.data.intensity;
+    }
+    if (parsed.data.complexity !== null && parsed.data.complexity !== undefined) {
+      insertPayload.complexity = parsed.data.complexity;
+    }
+
+    const { data: insertedWine, error: insertError } = await serviceRole
+      .from("wines")
+      .insert(insertPayload)
+      .select()
+      .single();
 
   if (insertError) {
       console.error("Insert error:", insertError);
@@ -181,12 +198,13 @@ export async function saveWineAction(formData: FormData) {
       throw new Error("Vinen blev gemt, men kunne ikke hentes tilbage fra databasen");
     }
 
-    if (!insertedWine.id) {
-      console.error("Inserted wine missing id:", insertedWine);
+    const wine = insertedWine as Database["public"]["Tables"]["wines"]["Row"];
+    if (!wine.id) {
+      console.error("Inserted wine missing id:", wine);
       throw new Error("Vinen blev gemt, men mangler ID");
     }
 
-    const wineId = insertedWine.id as string;
+    const wineId = wine.id;
 
   // Automatisk hent critic reviews i baggrunden (non-blocking)
   // Dette sker asynkront så det ikke blokerer response
