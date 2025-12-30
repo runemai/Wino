@@ -94,9 +94,9 @@ git push -u origin main
 
 Efter deployment (1-3 minutter):
 
-1. Vercel vil give dig en URL: `https://your-project.vercel.app`
+1. Vercel vil give dig en URL: `https://wino-six.vercel.app` (eller dit eget domain)
 2. Test at appen virker:
-   - Åbn URL'en i browseren
+   - Åbn URL'en i browseren: https://wino-six.vercel.app
    - Test at du kan se vine (Supabase connection)
    - Test at du kan uploade/scanne et vinbillede (OpenAI API)
 
@@ -138,19 +138,24 @@ Hvis du vil teste mod live Vercel URL:
 1. **Opdater `capacitor.config.ts` midlertidigt:**
    ```typescript
    server: {
-     url: 'https://your-project.vercel.app',
+     url: 'https://wino-six.vercel.app',
      cleartext: false, // HTTPS
    },
    ```
 
 2. **Synkroniser:**
    ```bash
+   cd wino-app
    pnpm cap:sync
    ```
 
-3. **Test i Xcode**
+3. **Test i Xcode:**
+   ```bash
+   pnpm cap:ios
+   ```
+   Dette åbner Xcode hvor du kan build og teste på simulator eller device.
 
-4. **Vigtigt:** Fjern `server.url` igen før production build!
+4. **Vigtigt:** Fjern `server.url` igen før production build (kommenter det ud igen)!
 
 ## Trin 6: Automatisk Deployment
 

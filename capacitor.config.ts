@@ -4,13 +4,31 @@ const config: CapacitorConfig = {
   appId: 'com.wino.app',
   appName: 'Wino',
   webDir: 'public',
-  // Note: server.url is removed for production builds
-  // When server.url is not set, Capacitor will use the bundled web assets (offline mode)
-  // For development, you can temporarily uncomment and set your local IP:
+  
+  // ============================================================================
+  // SERVER CONFIGURATION
+  // ============================================================================
+  // Choose ONE of the following options:
+  
+  // OPTION A: Offline/Standalone Mode (Production - Recommended)
+  // When server.url is not set, Capacitor bundles web assets for offline use.
+  // Uncomment this section for offline mode:
+  // (Currently active - no server.url configured)
+  
+  // OPTION B: Live Vercel Server (Development/Testing)
+  // For testing against the live deployed Vercel app, uncomment below:
+  // server: {
+  //   url: 'https://wino-six.vercel.app',
+  //   cleartext: false, // HTTPS
+  // },
+  
+  // OPTION C: Local Development Server
+  // For local development on your network, uncomment below and set your local IP:
   // server: {
   //   url: 'http://192.168.1.31:3000',
-  //   cleartext: true,
+  //   cleartext: true, // HTTP for local development
   // },
+  
   plugins: {
     Camera: {
       permissions: {
