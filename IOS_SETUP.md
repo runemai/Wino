@@ -1,147 +1,89 @@
-# iOS Setup Guide for Wino
+# iOS App Setup Guide
 
-This guide will help you set up the Wino app to run natively on iOS with full camera, file system, and photo library support.
+## Hurtig Start
 
-## Prerequisites
+Din Wino app er nu deployet på Vercel og klar til at blive brugt i iOS appen.
 
-1. **macOS** - iOS development requires macOS
-2. **Xcode** - Install from the Mac App Store (version 14.0 or later)
-3. **Node.js 22+** - Required for Capacitor CLI (or use the local Node.js in the project)
-4. **CocoaPods** - Install with `sudo gem install cocoapods`
+### App URL
+- **Production URL:** https://wino-six.vercel.app
 
-## Step 1: Build the Next.js App for Capacitor
+## To Måder at Køre iOS Appen
 
-First, build your Next.js app with static export enabled:
+### 1. Offline/Standalone Mode (Anbefalet til Production)
+
+Appen bundler web assets og virker offline:
 
 ```bash
 cd wino-app
-pnpm build:capacitor
-```
-
-This creates an `out` directory with the static files that Capacitor will use.
-
-## Step 2: Initialize iOS Project
-
-If you haven't already, add the iOS platform:
-
-```bash
-# Make sure you're using Node 22+ or use npx with the local node
-pnpm cap:add:ios
-```
-
-This will create an `ios` directory in your project root.
-
-## Step 3: Configure iOS Project
-
-1. Open the iOS project in Xcode:
-
-```bash
+pnpm cap:build
 pnpm cap:ios
 ```
 
-2. In Xcode, configure the following:
+**I `capacitor.config.ts`:**
+- ✅ `server.url` er IKKE sat (standard konfiguration)
+- Appen bruger bundled assets fra `public/` mappen
 
-   - **Signing & Capabilities**: 
-     - Select your development team
-     - Enable "Camera" capability
-     - Enable "Photo Library" capability
-   
-   - **Info.plist** (or in Xcode's Info tab):
-     Add the following permissions descriptions:
-     - `NSCameraUsageDescription`: "This app needs access to your camera to capture wine labels."
-     - `NSPhotoLibraryUsageDescription`: "This app needs access to your photo library to select images."
-     - `NSPhotoLibraryAddUsageDescription`: "This app needs to save images to your photo library."
+### 2. Live Server Mode (Til Testing)
 
-## Step 4: Install iOS Dependencies
+For at teste mod live Vercel server:
 
-Navigate to the iOS directory and install CocoaPods dependencies:
-
-```bash
-cd ios/App
-pod install
-cd ../..
+**I `capacitor.config.ts`, uncomment denne sektion:**
+```typescript
+server: {
+  url: 'https://wino-six.vercel.app',
+  cleartext: false,
+},
 ```
 
-## Step 5: Sync Capacitor
-
-After making any changes to your web app, sync them to iOS:
-
+Derefter:
 ```bash
-pnpm build:capacitor
+cd wino-app
 pnpm cap:sync
+pnpm cap:ios
 ```
 
-This updates the iOS project with your latest web build.
+**⚠️ Vigtigt:** Kommenter `server.url` ud igen før production build!
 
-## Step 6: Run on Device or Simulator
+## Build Process
 
-1. Open Xcode:
+1. **Build web assets:**
+   ```bash
+   pnpm build
+   ```
+
+2. **Synkroniser med Capacitor:**
+   ```bash
+   pnpm cap:sync
+   ```
+
+3. **Åbn i Xcode:**
    ```bash
    pnpm cap:ios
    ```
 
-2. Select your target device (iPhone simulator or connected device)
-
-3. Click the Run button (▶️) or press `Cmd+R`
-
-## Development Workflow
-
-1. **Make changes to your Next.js app**
-2. **Rebuild for Capacitor**:
-   ```bash
-   pnpm build:capacitor
-   ```
-3. **Sync to iOS**:
-   ```bash
-   pnpm cap:sync
-   ```
-4. **Test in Xcode** or on your device
-
-## Native Features Available
-
-Once running on iOS, the app will automatically use:
-
-- ✅ **Native Camera** - Full access to iPhone camera with proper permissions
-- ✅ **Photo Library** - Access to select images from your photo library
-- ✅ **File System** - Native file system access for saving/loading images
-- ✅ **Native UI** - Better performance and native feel
+4. **I Xcode:**
+   - Vælg en simulator eller device
+   - Klik på "Run" knappen (⌘R)
+   - Appen vil åbne og køre
 
 ## Troubleshooting
 
-### "Capacitor CLI requires NodeJS >=22.0.0"
+### App kan ikke connecte til Supabase
+- Tjek at miljøvariablerne (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) er sat korrekt i din `.env.local`
+- I standalone mode skal disse være bundlet i build
 
-If you see this error, you can:
-1. Install Node.js 22+ globally, or
-2. Use the local Node.js installation in the project root
-3. Or manually create the iOS project structure (already done if you see `ios/` directory)
+### App viser hvid skærm
+- Tjek at build var succesfuld: `pnpm build`
+- Verificer at `public/` mappen indeholder web assets
+- Prøv at synkronisere igen: `pnpm cap:sync`
 
-### Camera not working
+### Camera permissions
+- I Xcode: Projekt → Target → Info → Tjek at camera permissions er tilføjet
+- På device: Settings → Wino → Tillad kamera adgang
 
-1. Check that camera permissions are granted in iOS Settings
-2. Verify `NSCameraUsageDescription` is set in Info.plist
-3. Make sure you're testing on a real device (simulator camera support is limited)
+## Næste Steps
 
-### Build errors
-
-1. Clean build folder in Xcode: `Product > Clean Build Folder` (Shift+Cmd+K)
-2. Delete `ios/App/Pods` and re-run `pod install`
-3. Make sure CocoaPods is up to date: `sudo gem update cocoapods`
-
-### Sync issues
-
-If `cap sync` doesn't work:
-1. Manually copy the `out` directory to `ios/App/App/public/`
-2. Or rebuild and try again
-
-## Next Steps
-
-- Configure app icons and splash screens
-- Set up App Store Connect for distribution
-- Configure push notifications (if needed)
-- Set up analytics and crash reporting
-
-## Additional Resources
-
-- [Capacitor iOS Documentation](https://capacitorjs.com/docs/ios)
-- [Capacitor Camera Plugin](https://capacitorjs.com/docs/apis/camera)
-- [Capacitor Filesystem Plugin](https://capacitorjs.com/docs/apis/filesystem)
+- [ ] Test appen i simulator
+- [ ] Test appen på fysisk device
+- [ ] Konfigurer App Store metadata (hvis du vil udgive)
+- [ ] Setup Code Signing i Xcode
