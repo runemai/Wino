@@ -1,0 +1,65 @@
+{
+  "node": {
+    "404931dbffba5fd7f5ee8b6e8359a14a016f911352": {
+      "workers": {
+        "app/wine-details/page": {
+          "moduleId": "[project]/.next-internal/server/app/wine-details/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/wine-details/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/wines/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "saveWineAction",
+          "filename": "src/app/wine-details/actions.ts"
+        },
+        "app/wines/[id]/edit/page": {
+          "moduleId": "[project]/.next-internal/server/app/wines/[id]/edit/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/wine-details/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/wines/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "saveWineAction",
+          "filename": "src/app/wine-details/actions.ts"
+        }
+      },
+      "layer": {
+        "app/wine-details/page": "action-browser",
+        "app/wines/[id]/edit/page": "action-browser"
+      },
+      "filename": "src/app/wine-details/actions.ts",
+      "exportedName": "saveWineAction"
+    },
+    "409def8c018326c896dcb7f197223ff509fbde1149": {
+      "workers": {
+        "app/wine-details/page": {
+          "moduleId": "[project]/.next-internal/server/app/wine-details/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/wine-details/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/wines/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateWineAction",
+          "filename": "src/app/wines/actions.ts"
+        },
+        "app/wines/[id]/edit/page": {
+          "moduleId": "[project]/.next-internal/server/app/wines/[id]/edit/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/wine-details/actions.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/app/wines/actions.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "updateWineAction",
+          "filename": "src/app/wines/actions.ts"
+        }
+      },
+      "layer": {
+        "app/wine-details/page": "action-browser",
+        "app/wines/[id]/edit/page": "action-browser"
+      },
+      "filename": "src/app/wines/actions.ts",
+      "exportedName": "updateWineAction"
+    },
+    "405599c45ae074e0e8f7445cf59202855b374b333f": {
+      "workers": {
+        "app/page": {
+          "moduleId": "[project]/.next-internal/server/app/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/app/actions/delete-wine.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false,
+          "exportedName": "deleteWine",
+          "filename": "src/app/actions/delete-wine.ts"
+        }
+      },
+      "layer": {
+        "app/page": "action-browser"
+      },
+      "filename": "src/app/actions/delete-wine.ts",
+      "exportedName": "deleteWine"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "5h6kaL6dF7ey6+TeTw3xaQ/1OkVwLHqO+vH6dbYQ+FU="
+}
