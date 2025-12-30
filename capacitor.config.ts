@@ -12,15 +12,16 @@ const config: CapacitorConfig = {
   
   // OPTION A: Offline/Standalone Mode (Production - Recommended)
   // When server.url is not set, Capacitor bundles web assets for offline use.
+  // Note: Requires Next.js static export (not currently configured)
   // Uncomment this section for offline mode:
-  // (Currently active - no server.url configured)
+  // (Currently DISABLED - using live server instead)
   
-  // OPTION B: Live Vercel Server (Development/Testing)
-  // For testing against the live deployed Vercel app, uncomment below:
-  // server: {
-  //   url: 'https://wino-six.vercel.app',
-  //   cleartext: false, // HTTPS
-  // },
+  // OPTION B: Live Vercel Server (Currently Active)
+  // For testing against the live deployed Vercel app:
+  server: {
+    url: 'https://wino-six.vercel.app',
+    cleartext: false, // HTTPS
+  },
   
   // OPTION C: Local Development Server
   // For local development on your network, uncomment below and set your local IP:
