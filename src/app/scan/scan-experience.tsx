@@ -176,12 +176,8 @@ const runAnalysis = useCallback(
           setIsAnalyzing(true); // Behold loading state
           
           try {
-            // Sikre at filen er et File objekt
-            const fileToUpload = normalizedFile instanceof File 
-              ? normalizedFile 
-              : new File([normalizedFile], "wine-label.webp", {
-                  type: normalizedFile.type || "image/webp",
-                });
+            // normalizedFile er allerede et File objekt (defineret tidligere)
+            const fileToUpload = normalizedFile;
             
             const fileSizeMB = (fileToUpload.size / (1024 * 1024)).toFixed(2);
             console.log("[ScanExperience] Forbereder FormData med fil:", {
