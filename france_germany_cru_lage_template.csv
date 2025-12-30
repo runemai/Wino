@@ -1,0 +1,13 @@
+country,region,subregion,appellation_or_village,vineyard,classification,notes
+France,Burgundy,Côte de Beaune,Meursault,Les Perrières,Premier Cru,
+France,Burgundy,Côte de Beaune,Puligny-Montrachet,Les Pucelles,Premier Cru,
+France,Burgundy,Côte de Nuits,Gevrey-Chambertin,Clos Saint-Jacques,Premier Cru,
+France,Burgundy,Côte de Beaune,Puligny-Montrachet,Montrachet,Grand Cru,
+France,Burgundy,Côte de Nuits,Vosne-Romanée,Romanée-Conti,Grand Cru,
+France,Burgundy,Côte de Nuits,Gevrey-Chambertin,Chambertin,Grand Cru,
+Germany,Mosel,Mittelmosel,Wehlen,Wehlener Sonnenuhr,GROSSE LAGE,GG possible (dry)
+Germany,Rheingau,Rüdesheim,Rüdesheimer Berg Schlossberg,Berg Schlossberg,GROSSE LAGE,GG possible (dry)
+Germany,Pfalz,Mittelhaardt,Forst,Forster Kirchenstück,GROSSE LAGE,GG possible (dry)
+Germany,Rheinhessen,Rotes Hang,Nierstein,Niersteiner Hipping,GROSSE LAGE,GG possible (dry)
+Germany,Rheingau,,Winkel,Winkeler Jesuitengarten,ERSTE LAGE,
+Germany,Rheingau,,Hattenheim,Hattenheimer Wisselbrunnen,ERSTE LAGE,

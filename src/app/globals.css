@@ -1,0 +1,223 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  
+  /* iOS System Corner Radius - Apple HIG */
+  --radius-lg: 14px;  /* Large containers */
+  --radius-md: 10px;  /* Standard elements */
+  --radius-sm: 8px;   /* Small elements */
+  
+  /* iOS System Colors - Light Mode */
+  --system-blue: #007AFF;
+  --system-green: #34C759;
+  --system-indigo: #5856D6;
+  --system-orange: #FF9500;
+  --system-pink: #FF2D55;
+  --system-purple: #AF52DE;
+  --system-red: #FF3B30;
+  --system-teal: #5AC8FA;
+  --system-yellow: #FFCC00;
+  
+  /* iOS System Grays */
+  --system-gray: #8E8E93;
+  --system-gray2: #AEAEB2;
+  --system-gray3: #C7C7CC;
+  --system-gray4: #D1D1D6;
+  --system-gray5: #E5E5EA;
+  --system-gray6: #F2F2F7;
+  
+  /* iOS System Background Colors */
+  --system-background: #FFFFFF;
+  --system-secondary-background: #F2F2F7;
+  --system-tertiary-background: #FFFFFF;
+  
+  /* iOS System Text Colors */
+  --system-label: #000000;
+  --system-secondary-label: #3C3C43;
+  --system-tertiary-label: #3C3C4399;
+  --system-quaternary-label: #3C3C434D;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  /* Apple-style shadows - softer, more diffused */
+  --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.04), 0 8px 32px rgba(0, 0, 0, 0.06);
+  --shadow-floating: 0 4px 24px rgba(0, 0, 0, 0.08), 0 12px 48px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.06), 0 12px 40px rgba(0, 0, 0, 0.08);
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.02), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+html {
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  /* SF Pro font stack - Apple HIG */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro Rounded", var(--font-sans), system-ui, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  background: var(--system-secondary-background);
+  color: var(--system-label);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
+  font-variant-ligatures: common-ligatures;
+}
+
+/* iOS List Separator Styles - Apple HIG */
+.list-separator {
+  height: 0.5px;
+  background-color: rgba(60, 60, 67, 0.29);
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+.list-separator-inset {
+  height: 0.5px;
+  background-color: rgba(60, 60, 67, 0.29);
+  margin-left: 44px;
+  margin-right: 16px;
+}
+
+/* iOS Section Header - Apple HIG */
+.section-header {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  letter-spacing: -0.08px;
+  color: rgba(60, 60, 67, 0.6);
+  text-transform: uppercase;
+}
+
+/* iOS Grouped List Style - Apple HIG */
+.grouped-list {
+  background: transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 8px 16px;
+}
+
+.grouped-list-item {
+  background: #FFFFFF;
+  padding: 12px 16px;
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.29);
+}
+
+.grouped-list-item:first-child {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.grouped-list-item:last-child {
+  border-bottom: none;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+@keyframes scanSweep {
+  0% {
+    transform: translateY(110%);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(-110%);
+    opacity: 0;
+  }
+}
+
+.ai-scan-overlay {
+  position: absolute;
+  inset: -15%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.6) 48%,
+    rgba(148, 163, 184, 0.6) 54%,
+    rgba(255, 255, 255, 0.6) 60%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  filter: blur(6px);
+  animation: scanSweep 2.6s ease-in-out infinite;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.3);
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* iOS-style Slider - Apple HIG */
+.blic-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+}
+
+.blic-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #DC2626;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3), 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+}
+
+.blic-slider::-webkit-slider-thumb:active {
+  transform: scale(1.1);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2), 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+}
+
+.blic-slider::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #DC2626;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3), 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+}
+
+.blic-slider::-moz-range-thumb:active {
+  transform: scale(1.1);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2), 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+}
+
+.blic-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+}

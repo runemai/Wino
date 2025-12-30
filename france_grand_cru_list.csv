@@ -1,0 +1,58 @@
+country,region,subregion,appellation_or_village,vineyard,classification,notes
+France,Burgundy,Chablis,Chablis Grand Cru,Chablis Grand Cru,Grand Cru,
+France,Burgundy,Côte de Nuits,Chambertin,Chambertin,Grand Cru,
+France,Burgundy,Côte de Nuits,Chambertin-Clos de Bèze,Chambertin-Clos de Bèze,Grand Cru,
+France,Burgundy,Côte de Nuits,Chapelle-Chambertin,Chapelle-Chambertin,Grand Cru,
+France,Burgundy,Côte de Nuits,Charmes-Chambertin,Charmes-Chambertin,Grand Cru,
+France,Burgundy,Côte de Nuits,Griotte-Chambertin,Griotte-Chambertin,Grand Cru,
+France,Burgundy,Côte de Nuits,Latricières-Chambertin,Latricières-Chambertin,Grand Cru,
+France,Burgundy,Côte de Nuits,Mazis-Chambertin,Mazis-Chambertin,Grand Cru,
+France,Burgundy,Côte de Nuits,Mazoyères-Chambertin,Mazoyères-Chambertin,Grand Cru,
+France,Burgundy,Côte de Nuits,Ruchottes-Chambertin,Ruchottes-Chambertin,Grand Cru,
+France,Burgundy,Côte de Nuits,Bonnes-Mares,Bonnes-Mares,Grand Cru,
+France,Burgundy,Côte de Nuits,Clos de la Roche,Clos de la Roche,Grand Cru,
+France,Burgundy,Côte de Nuits,Clos des Lambrays,Clos des Lambrays,Grand Cru,
+France,Burgundy,Côte de Nuits,Clos de Tart,Clos de Tart,Grand Cru,
+France,Burgundy,Côte de Nuits,Clos Saint-Denis,Clos Saint-Denis,Grand Cru,
+France,Burgundy,Côte de Nuits,Musigny,Musigny,Grand Cru,
+France,Burgundy,Côte de Nuits,Clos de Vougeot,Clos de Vougeot,Grand Cru,
+France,Burgundy,Côte de Nuits,Échezeaux,Échezeaux,Grand Cru,
+France,Burgundy,Côte de Nuits,Grands Échezeaux,Grands Échezeaux,Grand Cru,
+France,Burgundy,Côte de Nuits,La Grande Rue,La Grande Rue,Grand Cru,
+France,Burgundy,Côte de Nuits,La Romanée,La Romanée,Grand Cru,
+France,Burgundy,Côte de Nuits,La Tâche,La Tâche,Grand Cru,
+France,Burgundy,Côte de Nuits,Richebourg,Richebourg,Grand Cru,
+France,Burgundy,Côte de Nuits,Romanée-Conti,Romanée-Conti,Grand Cru,
+France,Burgundy,Côte de Nuits,Romanée-Saint-Vivant,Romanée-Saint-Vivant,Grand Cru,
+France,Burgundy,Côte de Beaune,Corton,Corton,Grand Cru,
+France,Burgundy,Côte de Beaune,Charlemagne,Charlemagne,Grand Cru,
+France,Burgundy,Côte de Beaune,Corton-Charlemagne,Corton-Charlemagne,Grand Cru,
+France,Burgundy,Côte de Beaune,Bâtard-Montrachet,Bâtard-Montrachet,Grand Cru,
+France,Burgundy,Côte de Beaune,Bienvenues-Bâtard-Montrachet,Bienvenues-Bâtard-Montrachet,Grand Cru,
+France,Burgundy,Côte de Beaune,Chevalier-Montrachet,Chevalier-Montrachet,Grand Cru,
+France,Burgundy,Côte de Beaune,Criots-Bâtard-Montrachet,Criots-Bâtard-Montrachet,Grand Cru,
+France,Burgundy,Côte de Beaune,Montrachet,Montrachet,Grand Cru,
+France,Burgundy,Chablis,Chablis Grand Cru,Blanchot,Grand Cru (climat),One of the 7 Chablis Grand Cru climats
+France,Burgundy,Chablis,Chablis Grand Cru,Bougros,Grand Cru (climat),One of the 7 Chablis Grand Cru climats
+France,Burgundy,Chablis,Chablis Grand Cru,Les Clos,Grand Cru (climat),One of the 7 Chablis Grand Cru climats
+France,Burgundy,Chablis,Chablis Grand Cru,Grenouilles,Grand Cru (climat),One of the 7 Chablis Grand Cru climats
+France,Burgundy,Chablis,Chablis Grand Cru,Preuses,Grand Cru (climat),One of the 7 Chablis Grand Cru climats
+France,Burgundy,Chablis,Chablis Grand Cru,Valmur,Grand Cru (climat),One of the 7 Chablis Grand Cru climats
+France,Burgundy,Chablis,Chablis Grand Cru,Vaudésir,Grand Cru (climat),One of the 7 Chablis Grand Cru climats
+France,Champagne,,Ambonnay,Ambonnay,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Avize,Avize,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Aÿ,Aÿ,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Beaumont-sur-Vesle,Beaumont-sur-Vesle,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Bouzy,Bouzy,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Chouilly,Chouilly,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Cramant,Cramant,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Le Mesnil-sur-Oger,Le Mesnil-sur-Oger,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Louvois,Louvois,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Mailly-Champagne,Mailly-Champagne,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Oger,Oger,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Oiry,Oiry,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Puisieulx,Puisieulx,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Sillery,Sillery,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Tours-sur-Marne,Tours-sur-Marne,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Verzenay,Verzenay,Grand Cru,Grand Cru village in Échelle des crus
+France,Champagne,,Verzy,Verzy,Grand Cru,Grand Cru village in Échelle des crus
