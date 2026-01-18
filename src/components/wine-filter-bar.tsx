@@ -20,7 +20,6 @@ export function WineFilterBar({ wines, onFilterChange }: WineFilterBarProps) {
   const [selectedType, setSelectedType] = useState<WineType | "alle">("alle");
   const [selectedVintage, setSelectedVintage] = useState<string>("alle");
   const [selectedCountry, setSelectedCountry] = useState<string>("alle");
-  const [isTypeOpen, setIsTypeOpen] = useState(false);
   const [isVintageOpen, setIsVintageOpen] = useState(false);
   const [isCountryOpen, setIsCountryOpen] = useState(false);
   const filterBarRef = useRef<HTMLDivElement>(null);
@@ -29,7 +28,6 @@ export function WineFilterBar({ wines, onFilterChange }: WineFilterBarProps) {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (filterBarRef.current && !filterBarRef.current.contains(event.target as Node)) {
-        setIsTypeOpen(false);
         setIsVintageOpen(false);
         setIsCountryOpen(false);
       }
@@ -74,7 +72,6 @@ export function WineFilterBar({ wines, onFilterChange }: WineFilterBarProps) {
 
   const handleTypeSelect = (type: WineType | "alle") => {
     setSelectedType(type);
-    setIsTypeOpen(false);
   };
 
   const handleVintageSelect = (vintage: string) => {
@@ -88,102 +85,74 @@ export function WineFilterBar({ wines, onFilterChange }: WineFilterBarProps) {
   };
 
   return (
-    <div ref={filterBarRef} className="flex items-center justify-between gap-6 border-b border-[#E5E7EB]/60 pb-6">
-      {/* Left: Count */}
-      <div className="text-sm text-[#6B7280]">
-        <span className="font-medium">Antal flasker:</span>{" "}
-        <span className="font-semibold text-[#DC2626]">{filteredWines.length}</span>
+    <div ref={filterBarRef} className="space-y-3">
+      <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.3em] text-white/40">
+        <span>Filter</span>
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] text-white/60">
+          {filteredWines.length} flasker
+        </span>
       </div>
 
-      {/* Right: Filters */}
-      <div className="flex items-center gap-4">
-        {/* Type Filter */}
-        <div className="relative">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <button
+          onClick={() => handleTypeSelect("alle")}
+          className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
+            selectedType === "alle"
+              ? "bg-[#e11d48] text-white shadow-[0_10px_24px_rgba(225,29,72,0.35)]"
+              : "border border-white/10 bg-white/5 text-white/70 hover:text-white"
+          }`}
+        >
+          Alle vine
+        </button>
+        {Object.entries(wineTypeLabel).map(([value, label]) => (
           <button
-            onClick={() => {
-              setIsTypeOpen(!isTypeOpen);
-              setIsVintageOpen(false);
-              setIsCountryOpen(false);
-            }}
-            className="flex items-center gap-1.5 text-sm font-medium text-[#6B7280] transition-colors duration-200 hover:text-[#DC2626]"
+            key={value}
+            onClick={() => handleTypeSelect(value as WineType)}
+            className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
+              selectedType === value
+                ? "bg-[#e11d48] text-white shadow-[0_10px_24px_rgba(225,29,72,0.35)]"
+                : "border border-white/10 bg-white/5 text-white/70 hover:text-white"
+            }`}
           >
-            <span>{selectedType === "alle" ? "Type" : wineTypeLabel[selectedType]}</span>
-            <ChevronDown
-              className={`h-3.5 w-3.5 transition-transform duration-300 ease-out ${
-                isTypeOpen ? "rotate-180" : ""
-              }`}
-            />
+            {label}
           </button>
-          {isTypeOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-40 rounded-[16px] border border-[#E5E7EB]/60 bg-white/95 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.06),0_12px_40px_rgba(0,0,0,0.08)] overflow-hidden">
-              <button
-                onClick={() => handleTypeSelect("alle")}
-                className={`w-full px-4 py-3 text-left text-sm transition-colors duration-150 ${
-                  selectedType === "alle"
-                    ? "bg-[#F9FAFB] text-[#DC2626] font-semibold"
-                    : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#DC2626] font-medium"
-                }`}
-              >
-                Alle typer
-              </button>
-              {Object.entries(wineTypeLabel).map(([value, label], index) => (
-                <button
-                  key={value}
-                  onClick={() => handleTypeSelect(value as WineType)}
-                  className={`w-full px-4 py-3 text-left text-sm transition-colors duration-150 ${
-                    selectedType === value
-                      ? "bg-[#F9FAFB] text-[#DC2626] font-semibold"
-                      : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#DC2626] font-medium"
-                  }`}
-                  style={{ borderTop: index >= 0 ? '1px solid rgba(229, 231, 235, 0.5)' : 'none' }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        ))}
 
-        {/* Vintage Filter */}
         {uniqueVintages.length > 0 && (
           <div className="relative">
             <button
               onClick={() => {
                 setIsVintageOpen(!isVintageOpen);
-                setIsTypeOpen(false);
                 setIsCountryOpen(false);
               }}
-              className="flex items-center gap-1.5 text-sm font-medium text-[#6B7280] transition-colors duration-200 hover:text-[#DC2626]"
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/70 transition hover:text-white"
             >
               <span>{selectedVintage === "alle" ? "Årgang" : selectedVintage}</span>
               <ChevronDown
-                className={`h-3 w-3 transition-transform duration-200 ${
-                  isVintageOpen ? "rotate-180" : ""
-                }`}
+                className={`h-3 w-3 transition-transform ${isVintageOpen ? "rotate-180" : ""}`}
               />
             </button>
             {isVintageOpen && (
-              <div className="absolute right-0 top-full z-50 mt-2 max-h-60 w-32 overflow-y-auto rounded-[16px] border border-[#E5E7EB]/60 bg-white/95 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.06),0_12px_40px_rgba(0,0,0,0.08)] overflow-hidden">
+              <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-36 overflow-y-auto rounded-[16px] border border-white/10 bg-[#1e1821]/95 shadow-[0_14px_40px_rgba(6,4,8,0.5)] backdrop-blur-xl">
                 <button
                   onClick={() => handleVintageSelect("alle")}
-                  className={`w-full px-4 py-3 text-left text-sm transition-colors duration-150 ${
+                  className={`w-full px-4 py-3 text-left text-xs uppercase tracking-[0.12em] transition-colors ${
                     selectedVintage === "alle"
-                      ? "bg-[#F9FAFB] text-[#DC2626] font-semibold"
-                      : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#DC2626] font-medium"
+                      ? "bg-white/10 text-[#fb7185] font-semibold"
+                      : "text-white/70 hover:bg-white/10 hover:text-white font-medium"
                   }`}
                 >
                   Alle årgange
                 </button>
-                {uniqueVintages.map((vintage, index) => (
+                {uniqueVintages.map((vintage) => (
                   <button
                     key={vintage}
                     onClick={() => handleVintageSelect(vintage)}
-                    className={`w-full px-4 py-3 text-left text-sm transition-colors duration-150 ${
+                    className={`w-full px-4 py-3 text-left text-xs uppercase tracking-[0.12em] transition-colors ${
                       selectedVintage === vintage
-                        ? "bg-[#F9FAFB] text-[#DC2626] font-semibold"
-                        : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#DC2626] font-medium"
+                        ? "bg-white/10 text-[#fb7185] font-semibold"
+                        : "text-white/70 hover:bg-white/10 hover:text-white font-medium"
                     }`}
-                    style={{ borderTop: index >= 0 ? '1px solid rgba(229, 231, 235, 0.5)' : 'none' }}
                   >
                     {vintage}
                   </button>
@@ -193,46 +162,41 @@ export function WineFilterBar({ wines, onFilterChange }: WineFilterBarProps) {
           </div>
         )}
 
-        {/* Country Filter */}
         {uniqueCountries.length > 0 && (
           <div className="relative">
             <button
               onClick={() => {
                 setIsCountryOpen(!isCountryOpen);
-                setIsTypeOpen(false);
                 setIsVintageOpen(false);
               }}
-              className="flex items-center gap-1.5 text-sm font-medium text-[#6B7280] transition-colors duration-200 hover:text-[#DC2626]"
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/70 transition hover:text-white"
             >
               <span>{selectedCountry === "alle" ? "Land" : selectedCountry}</span>
               <ChevronDown
-                className={`h-3 w-3 transition-transform duration-200 ${
-                  isCountryOpen ? "rotate-180" : ""
-                }`}
+                className={`h-3 w-3 transition-transform ${isCountryOpen ? "rotate-180" : ""}`}
               />
             </button>
             {isCountryOpen && (
-              <div className="absolute right-0 top-full z-50 mt-2 max-h-60 w-40 overflow-y-auto rounded-[16px] border border-[#E5E7EB]/60 bg-white/95 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.06),0_12px_40px_rgba(0,0,0,0.08)] overflow-hidden">
+              <div className="absolute left-0 top-full z-50 mt-2 max-h-60 w-44 overflow-y-auto rounded-[16px] border border-white/10 bg-[#1e1821]/95 shadow-[0_14px_40px_rgba(6,4,8,0.5)] backdrop-blur-xl">
                 <button
                   onClick={() => handleCountrySelect("alle")}
-                  className={`w-full px-4 py-3 text-left text-sm transition-colors duration-150 ${
+                  className={`w-full px-4 py-3 text-left text-xs uppercase tracking-[0.12em] transition-colors ${
                     selectedCountry === "alle"
-                      ? "bg-[#F9FAFB] text-[#DC2626] font-semibold"
-                      : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#DC2626] font-medium"
+                      ? "bg-white/10 text-[#fb7185] font-semibold"
+                      : "text-white/70 hover:bg-white/10 hover:text-white font-medium"
                   }`}
                 >
                   Alle lande
                 </button>
-                {uniqueCountries.map((country, index) => (
+                {uniqueCountries.map((country) => (
                   <button
                     key={country}
                     onClick={() => handleCountrySelect(country)}
-                    className={`w-full px-4 py-3 text-left text-sm transition-colors duration-150 ${
+                    className={`w-full px-4 py-3 text-left text-xs uppercase tracking-[0.12em] transition-colors ${
                       selectedCountry === country
-                        ? "bg-[#F9FAFB] text-[#DC2626] font-semibold"
-                        : "text-[#6B7280] hover:bg-[#F9FAFB] hover:text-[#DC2626] font-medium"
+                        ? "bg-white/10 text-[#fb7185] font-semibold"
+                        : "text-white/70 hover:bg-white/10 hover:text-white font-medium"
                     }`}
-                    style={{ borderTop: index >= 0 ? '1px solid rgba(229, 231, 235, 0.5)' : 'none' }}
                   >
                     {country}
                   </button>

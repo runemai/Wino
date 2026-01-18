@@ -2,7 +2,7 @@ import type { ComponentPropsWithoutRef } from "react";
 import { twMerge } from "tailwind-merge";
 
 const baseStyles =
-  "inline-flex items-center gap-1 rounded-[10px] border border-[#E5E7EB]/60 bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-[#6B7280] shadow-[0_1px_3px_rgba(0,0,0,0.02),0_2px_8px_rgba(0,0,0,0.04)]";
+  "inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/80 shadow-[0_8px_20px_rgba(6,4,8,0.4)] backdrop-blur";
 
 export const Badge = ({
   className,

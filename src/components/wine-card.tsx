@@ -18,46 +18,62 @@ const wineTypeLabel: Record<Wine["type"], string> = {
 interface WineCardProps {
   wine: Wine;
   actionSlot?: ReactNode;
+  layout?: "grid" | "list";
 }
 
-export const WineCard = ({ wine, actionSlot }: WineCardProps) => {
+export const WineCard = ({ wine, actionSlot, layout = "grid" }: WineCardProps) => {
   const preventNavigation = (event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
   };
 
+  const blicScores = [wine.balance, wine.length, wine.intensity, wine.complexity].filter(
+    (score): score is number => score !== null && score !== undefined && score >= 80 && score <= 100,
+  );
+  const averageBlic =
+    blicScores.length > 0
+      ? blicScores.reduce((sum, score) => sum + score, 0) / blicScores.length
+      : null;
+  const blicDisplay = averageBlic ? (averageBlic / 10).toFixed(1) : null;
+
   const cardContent = (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-[24px] bg-gradient-to-br from-[#DC2626] via-[#B91C1C] to-[#991B1B] shadow-[0_8px_24px_rgba(220,38,38,0.25)] transition-all duration-300 ease-out active:scale-[0.98]">
-      {/* Gradient overlay for texture */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/10 pointer-events-none z-10"></div>
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-t-[24px] bg-white">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-[26px] border border-white/10 bg-[#17121a] shadow-[var(--shadow-card)] transition-all duration-300 ease-out hover:translate-y-[-2px] hover:shadow-[var(--shadow-hover)] active:scale-[0.98]">
+      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/40 pointer-events-none z-10" />
+      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-t-[26px] bg-[#0f0d12]">
         {wine.image_url ? (
           <Image
             src={wine.image_url}
             alt={`${wine.producer} ${wine.vintage ?? ""}`.trim() || wine.producer}
             fill
             sizes="(min-width: 1024px) 384px, (min-width: 768px) 384px, 100vw"
-            className="object-cover object-[50%_60%] transition-transform duration-700 ease-out"
+            className="object-cover object-[50%_60%] transition-transform duration-700 ease-out group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-[#F2F2F7] to-[#FFFFFF] text-center">
-            <span className="text-[13px] font-semibold uppercase tracking-[0.1em] text-[#DC2626]/60">
+          <div className="flex h-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-[#151016] to-[#0f0d12] text-center">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">
               Ingen billede
             </span>
-            <p className="px-8 text-[13px] text-[#3C3C4399] leading-[18px]">
+            <p className="px-8 text-[12px] text-white/50 leading-[18px]">
               Denne vin er tilføjet uden foto.
             </p>
           </div>
         )}
-        {/* Type badge overlay */}
-        <div className="absolute top-4 left-4 z-20">
-          <Badge className="bg-white/95 backdrop-blur-md text-[12px] font-bold px-3 py-1.5 rounded-[8px] text-[#DC2626] shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
-            {wineTypeLabel[wine.type]}
+        <div className="absolute bottom-4 left-4 z-20">
+          <Badge className="bg-black/40 text-white/90 shadow-[0_12px_30px_rgba(4,2,6,0.45)]">
+            {wine.appellation || wine.wine_district || wineTypeLabel[wine.type]}
           </Badge>
         </div>
+        {blicDisplay ? (
+          <div className="absolute right-4 top-4 z-20 flex h-12 w-12 flex-col items-center justify-center rounded-full border border-white/15 bg-[#b21b3a] text-white shadow-[0_12px_28px_rgba(178,27,58,0.35)]">
+            <span className="text-[14px] font-semibold leading-none">{blicDisplay}</span>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/70">
+              Blic
+            </span>
+          </div>
+        ) : null}
         {actionSlot ? (
           <div
-            className="absolute right-4 top-4 z-10 opacity-100 transition-opacity duration-200"
+            className={`absolute right-4 ${blicDisplay ? "top-16" : "top-4"} z-10 opacity-100 transition-opacity duration-200`}
             onClick={preventNavigation}
           >
             {actionSlot}
@@ -65,69 +81,49 @@ export const WineCard = ({ wine, actionSlot }: WineCardProps) => {
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 p-6 relative z-10">
-        {/* Producer - hovedtitel */}
+      <div className="relative z-10 flex flex-1 flex-col gap-4 p-5">
         <div className="space-y-2">
-          <h3 className="text-[24px] font-bold text-white leading-[30px] tracking-[-0.5px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
+          <h3 className="text-[20px] font-semibold text-white leading-[26px] tracking-[-0.4px]">
             {wine.producer}
           </h3>
-          {/* Cuvée eller Appellation */}
           {(wine.cuvee || wine.appellation) && (
-            <p className="text-[16px] text-white/90 leading-[22px] tracking-[-0.3px] font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+            <p className="text-[13px] text-white/70 leading-[18px] tracking-[-0.2px]">
               {wine.cuvee || wine.appellation}
             </p>
           )}
         </div>
 
-        {/* Details sektion - Region, Year */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-white/50">
+          {wine.vintage && <span className="text-[#fb7185]">{wine.vintage} Vintage</span>}
           {(wine.country || wine.wine_district) && (
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm px-3 py-1.5 border border-white/30">
-              <span className="text-[11px] font-semibold text-white">📍</span>
-              <span className="text-[13px] font-medium text-white leading-[18px]">{[wine.country, wine.wine_district].filter(Boolean).join(", ")}</span>
-            </div>
-          )}
-          {wine.vintage && (
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm px-3 py-1.5 border border-white/30">
-              <span className="text-[11px] font-semibold text-white">📅</span>
-              <span className="text-[13px] font-medium text-white leading-[18px]">{wine.vintage}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Detaljer: Druer, Alkohol, Vinmark, Dato */}
-        <div className="mt-auto space-y-2.5 pt-4 border-t border-white/20">
-          {wine.grapes && (
-            <div className="grid grid-cols-[70px_1fr] items-center gap-3">
-              <span className="text-[12px] text-white/70 leading-[16px] font-medium">Druer</span>
-              <span className="text-[14px] text-white leading-[20px] font-medium">{wine.grapes}</span>
-            </div>
-          )}
-          {wine.alcohol && (
-            <div className="grid grid-cols-[70px_1fr] items-center gap-3">
-              <span className="text-[12px] text-white/70 leading-[16px] font-medium">Alkohol</span>
-              <span className="text-[14px] text-white leading-[20px] font-medium">{wine.alcohol}</span>
-            </div>
-          )}
-          {wine.vineyard && (
-            <div className="grid grid-cols-[70px_1fr] items-center gap-3">
-              <span className="text-[12px] text-white/70 leading-[16px] font-medium">Vinmark</span>
-              <span className="text-[14px] text-white leading-[20px] font-medium">{wine.vineyard}</span>
-            </div>
-          )}
-          <div className="grid grid-cols-[70px_1fr] items-center gap-3">
-            <span className="text-[12px] text-white/70 leading-[16px] font-medium">Dato</span>
-            <span className="text-[14px] text-white leading-[20px] font-medium">
-              {format(new Date(wine.created_at), "d. MMM yyyy", { locale: da })}
+            <span>
+              {wine.vintage ? "· " : ""}
+              {[wine.wine_district, wine.country].filter(Boolean).join(", ")}
             </span>
-          </div>
+          )}
         </div>
 
-        {/* Noter */}
-        {wine.notes && (
-          <p className="line-clamp-2 text-sm text-[#6B7280]/90 leading-relaxed">
-            {wine.notes}
-          </p>
+        {layout === "list" && (
+          <div className="mt-2 space-y-2 border-t border-white/10 pt-4 text-xs text-white/60">
+            {wine.grapes && (
+              <p className="line-clamp-2">
+                <span className="text-white/40">Druer:</span> {wine.grapes}
+              </p>
+            )}
+            {wine.alcohol && (
+              <p>
+                <span className="text-white/40">Alkohol:</span> {wine.alcohol}
+              </p>
+            )}
+            <p>
+              <span className="text-white/40">Tilføjet:</span>{" "}
+              {format(new Date(wine.created_at), "d. MMM yyyy", { locale: da })}
+            </p>
+          </div>
+        )}
+
+        {wine.notes && layout === "list" && (
+          <p className="line-clamp-2 text-xs text-white/60 leading-relaxed">{wine.notes}</p>
         )}
       </div>
     </article>
@@ -136,7 +132,7 @@ export const WineCard = ({ wine, actionSlot }: WineCardProps) => {
   return (
     <Link
       href={`/wines/${wine.id}/edit`}
-      className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-4 focus-visible:ring-offset-[#F2F2F7] rounded-[24px]"
+      className="block rounded-[26px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fb7185]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0b0d]"
     >
       {cardContent}
     </Link>

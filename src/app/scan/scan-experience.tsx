@@ -213,59 +213,98 @@ const runAnalysis = useCallback(
 
             console.log("[ScanExperience] Kalder saveWineAction...", new Date().toISOString());
             
-            let saveResult;
             try {
-              // Tilføj timeout protection
-              const timeoutMs = 60000; // 60 sekunder timeout
               const startTime = Date.now();
               
-              const savePromise = saveWineAction(saveFormData);
-              const timeoutPromise = new Promise<null>((_, reject) => 
-                setTimeout(() => reject(new Error(`Timeout: Gemning tog længere end ${timeoutMs/1000} sekunder`)), timeoutMs)
-              );
+              // Call server action and handle response
+              let saveResult;
+              try {
+                saveResult = await saveWineAction(saveFormData);
+              } catch (actionError: any) {
+                // Handle Next.js server action errors
+                console.error("[ScanExperience] Server action error:", {
+                  error: actionError,
+                  message: actionError?.message,
+                  stack: actionError?.stack,
+                  name: actionError?.name,
+                });
+                
+                // Check if it's a serialization error
+                if (actionError?.message?.includes("unexpected") || 
+                    actionError?.message?.includes("serialize") ||
+                    actionError?.digest) {
+                  console.error("[ScanExperience] Response serialization error detected");
+                  // The wine might actually be saved, so try to proceed anyway
+                  // But first, log the error for debugging
+                  throw new Error("Server response fejl - vinen kan være gemt. Tjek oversigten.");
+                }
+                
+                throw actionError;
+              }
               
-              saveResult = await Promise.race([savePromise, timeoutPromise]);
               const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-              console.log(`[ScanExperience] ✅ saveWineAction færdig efter ${duration}s:`, saveResult);
-            } catch (saveErr) {
-              console.error("[ScanExperience] Exception fra saveWineAction:", saveErr);
+              
+              console.log(`[ScanExperience] ✅ saveWineAction færdig efter ${duration}s:`, {
+                ok: saveResult?.ok,
+                wineId: saveResult?.wineId,
+                resultType: typeof saveResult,
+                resultKeys: saveResult ? Object.keys(saveResult) : 'null',
+              });
+              
+              if (saveResult && saveResult.ok && saveResult.wineId) {
+                const wineId = String(saveResult.wineId);
+                console.log("[ScanExperience] ✅ Vinen gemt med ID:", wineId);
+                
+                // Clear loading state immediately
+                setIsAnalyzing(false);
+                setStatus("Vinen er gemt – sender dig videre …");
+                
+                // Refresh router cache to ensure Next.js has the latest data
+                router.refresh();
+                
+                // Wait longer to ensure server action is fully complete and Next.js has finished processing
+                // This helps avoid Server Components render errors
+                await new Promise((resolve) => setTimeout(resolve, 1500));
+                
+                // Use router.push for navigation - Next.js will handle it properly
+                router.push(`/wines/${wineId}/edit`);
+                return;
+              } else {
+                console.error("[ScanExperience] ❌ saveWineAction returnerede ugyldigt result:", {
+                  result: saveResult,
+                  hasOk: !!saveResult?.ok,
+                  hasWineId: !!saveResult?.wineId,
+                });
+                throw new Error("Serveren returnerede et ugyldigt resultat. Prøv igen.");
+              }
+            } catch (saveErr: any) {
+              console.error("[ScanExperience] ❌ Exception fra saveWineAction:", {
+                error: saveErr,
+                message: saveErr?.message,
+                name: saveErr?.name,
+                stack: saveErr?.stack,
+              });
+              
+              const errorMessage = saveErr instanceof Error 
+                ? saveErr.message 
+                : typeof saveErr === 'string'
+                  ? saveErr
+                  : "Ukendt fejl ved gemning";
+              
               setIsAnalyzing(false);
-              // Hvis gemning fejler, redirect til wine-details så brugeren kan gemme manuelt
-              setError(`Kunne ikke gemme vinen: ${saveErr instanceof Error ? saveErr.message : 'Ukendt fejl'}. Prøv at gemme manuelt på næste side.`);
+              setError(`Kunne ikke gemme vinen: ${errorMessage}. Du kan gemme manuelt på næste side.`);
+              
+              // Gem data i store så brugeren kan gemme manuelt
               setCapture({
                 file: normalizedFile,
                 previewUrl: previewDataUrl,
                 extraction: payload.data,
               });
-              await new Promise((resolve) => setTimeout(resolve, 2000));
-              window.location.href = redirect;
-              return;
-            }
-            
-            setIsAnalyzing(false);
-            
-            if (saveResult && saveResult.ok && saveResult.wineId) {
-              console.log("[ScanExperience] ✅ Vinen gemt med ID:", saveResult.wineId);
-              setStatus("Vinen er gemt – sender dig videre …");
               
-              // Vent længere for at sikre at Supabase og cache er synkroniseret
-              await new Promise((resolve) => setTimeout(resolve, 800));
+              // Vent lidt så brugeren kan se fejlbeskeden
+              await new Promise((resolve) => setTimeout(resolve, 3000));
               
-              // Brug window.location for at tvinge en fuld page reload og cache revalidation
-              // Dette sikrer at vinen faktisk er synlig på forsiden
-              window.location.href = `/wines/${saveResult.wineId}/edit`;
-              return;
-            } else {
-              console.error("[ScanExperience] ❌ Kunne ikke gemme vinen:", saveResult);
-              setError("Kunne ikke gemme vinen. Prøv at gemme manuelt på næste side.");
-              setIsAnalyzing(false);
-              // Hvis gemning fejler, redirect til wine-details så brugeren kan gemme manuelt
-              setCapture({
-                file: normalizedFile,
-                previewUrl: previewDataUrl,
-                extraction: payload.data,
-              });
-              await new Promise((resolve) => setTimeout(resolve, 200));
+              // Redirect til wine-details så brugeren kan gemme manuelt
               window.location.href = redirect;
               return;
             }
@@ -442,27 +481,13 @@ const runAnalysis = useCallback(
   };
 
   return (
-    <div className="flex max-h-[75vh] flex-1 flex-col gap-6 overflow-hidden rounded-4xl border border-slate-200 bg-white/90 p-6 shadow-[var(--shadow-card)] backdrop-blur">
-      <div className="space-y-2 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">
-          {isCamera ? "Tag billede" : "Upload billede"}
-        </p>
-        <h1 className="text-3xl font-semibold text-slate-900">
-          {isCamera ? "Fang etiketten — AI klarer detaljerne" : "Upload etiketten — vi klarer resten"}
-        </h1>
-        <p className="text-sm text-slate-500">
-          {isCamera
-            ? "Hold kameraet roligt. Når billedet er taget, analyserer vi automatisk."
-            : "Vælg et billede af etiketten. Når upload er færdig, analyserer vi automatisk og sender dig videre."}
-        </p>
-      </div>
-
+    <div className="flex flex-1 flex-col gap-6">
       <div
-        className="relative mx-auto flex w-full max-w-[28rem] flex-1 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-slate-100"
+        className="relative mx-auto flex w-full max-w-[30rem] flex-1 items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-[#0f0d12]"
         style={{ aspectRatio: previewRatio }}
       >
         {capturedImage ? (
-          <div className="relative flex h-full w-full items-center justify-center bg-slate-100">
+          <div className="relative flex h-full w-full items-center justify-center bg-[#0f0d12]">
             <img
               src={capturedImage}
               alt="Valgt vinbillede"
@@ -476,12 +501,8 @@ const runAnalysis = useCallback(
             />
             {isAnalyzing ? (
               <>
-                <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-[2px]" />
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
                 <div className="ai-scan-overlay" />
-                <div className="absolute inset-x-6 bottom-6 flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 shadow-lg">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>AI scanner</span>
-                </div>
               </>
             ) : null}
           </div>
@@ -503,8 +524,8 @@ const runAnalysis = useCallback(
             ) : null}
           </>
         ) : (
-          <div className="flex w-full flex-col items-center justify-center gap-3 px-8 py-16 text-center text-slate-500">
-            <FileUp className="h-6 w-6 text-slate-600" />
+          <div className="flex w-full flex-col items-center justify-center gap-3 px-8 py-16 text-center text-white/60">
+            <FileUp className="h-6 w-6 text-white/50" />
             <p className="text-sm">
               {isNativePlatform
                 ? "Vælg et billede fra dit fotobibliotek. Når upload er færdig, starter AI-analysen automatisk."
@@ -518,12 +539,28 @@ const runAnalysis = useCallback(
                   fileInputRef.current?.click();
                 }
               }}
-              className="rounded-full bg-slate-900 px-4 text-sm"
+              className="rounded-full bg-[#e11d48] px-4 text-xs"
             >
               {isNativePlatform ? "Vælg fra bibliotek" : "Vælg billede"}
             </Button>
           </div>
         )}
+
+        {isCamera ? (
+          <div className="scan-frame">
+            <span className="scan-corner tl" />
+            <span className="scan-corner tr" />
+            <span className="scan-corner bl" />
+            <span className="scan-corner br" />
+          </div>
+        ) : null}
+
+        {isAnalyzing ? (
+          <div className="absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-white/70 shadow-lg backdrop-blur">
+            <span className="h-2 w-2 rounded-full bg-[#fb7185]" />
+            Detecting label
+          </div>
+        ) : null}
 
         <input
           ref={fileInputRef}
@@ -534,19 +571,19 @@ const runAnalysis = useCallback(
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-slate-500">
+      <div className="rounded-[24px] border border-white/10 bg-[#151018]/90 p-4 shadow-[var(--shadow-subtle)] backdrop-blur">
+        <div className="text-sm text-white/70">
           {status ??
             (isCamera
               ? "Tryk “Tag billede” når etiketten fylder billedet."
               : "Vælg et billede via knappen ovenfor for at starte analysen.")}
         </div>
-        <div className="flex gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           {isCamera ? (
             <Button
               onClick={handleCapture}
               disabled={isAnalyzing || (!isNativePlatform && !isStreaming) || nativeCamera.isLoading}
-              className="rounded-full bg-slate-900 px-4"
+              className="rounded-full bg-[#e11d48] px-4 text-xs"
             >
               <Camera className="mr-2 h-4 w-4" />
               Tag billede
@@ -555,7 +592,7 @@ const runAnalysis = useCallback(
           {capturedImage && !isAnalyzing ? (
             <Button
               onClick={resetAndRetry}
-              className="rounded-full border border-slate-300 bg-white px-4 text-sm text-slate-600 hover:bg-slate-50"
+              className="rounded-full border border-white/15 bg-white/5 px-4 text-xs text-white/70 hover:bg-white/10"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
               Prøv igen
@@ -565,7 +602,7 @@ const runAnalysis = useCallback(
       </div>
 
       {error ? (
-        <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+        <div className="flex items-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
           <AlertCircle className="h-4 w-4" />
           <span>{error}</span>
         </div>

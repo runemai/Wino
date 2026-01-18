@@ -2,6 +2,7 @@ import { NewWineMenu } from "@/components/new-wine-menu";
 import { WineList } from "@/components/wine-list";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
+import { Search, SlidersHorizontal, User } from "lucide-react";
 
 async function getWines() {
   try {
@@ -80,22 +81,51 @@ async function getWines() {
 
 export default async function Home() {
   const wines = await getWines();
+  const wineCount = wines.length;
 
   return (
     <>
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-12 sm:px-6 lg:px-8" style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + 60px)` }}>
-      <header className="flex items-center justify-between gap-4 pb-8">
-        <div>
-          <h1 className="text-[32px] font-bold leading-[38px] tracking-[-0.5px] text-[#000000]">
-            Min vinsamling
-          </h1>
-        </div>
-        <div className="flex-shrink-0">
-          <NewWineMenu />
-        </div>
-      </header>
+      <main
+        className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 sm:px-6 lg:px-8"
+        style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + 60px)` }}
+      >
+        <header className="flex flex-col gap-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#1f131b] shadow-[var(--shadow-subtle)]">
+                <User className="h-5 w-5 text-white/70" />
+              </div>
+              <div>
+                <p className="text-[22px] font-semibold leading-[26px] tracking-[-0.3px] text-white sm:text-[26px]">
+                  Min kælder
+                </p>
+                <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-white/40">
+                  {wineCount} flasker i din private samling
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                aria-label="Søg i samlingen"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+              <button
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                aria-label="Filtrér samlingen"
+              >
+                <SlidersHorizontal className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
 
-      <WineList initialWines={wines} />
+          <div>
+            <NewWineMenu />
+          </div>
+        </header>
+
+        <WineList initialWines={wines} />
       </main>
     </>
   );

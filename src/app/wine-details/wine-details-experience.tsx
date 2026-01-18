@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import {
   AlertCircle,
   Camera,
@@ -224,6 +224,12 @@ export const WineDetailsExperience = ({
   };
 
   const handleSave = async () => {
+    // Prevent multiple simultaneous saves
+    if (isSaving) {
+      console.warn("[WineDetails] Save already in progress, ignoring duplicate call");
+      return;
+    }
+
     if (!form.producer.trim()) {
       setError("Producent skal udfyldes.");
       return;
@@ -249,27 +255,32 @@ export const WineDetailsExperience = ({
       data.append("vineyard", form.vineyard);
       data.append("consumed_date", form.consumed_date);
       data.append("smagsnote", form.smagsnote?.trim() || "");
-      // Only send BLIK ratings if they are valid values (85-100), otherwise send empty string which will be converted to null
-      if (form.balance !== null && form.balance !== undefined && form.balance >= 85 && form.balance <= 100) {
-        data.append("balance", form.balance.toString());
-      } else {
-        data.append("balance", "");
-      }
-      if (form.length !== null && form.length !== undefined && form.length >= 85 && form.length <= 100) {
-        data.append("length", form.length.toString());
-      } else {
-        data.append("length", "");
-      }
-      if (form.intensity !== null && form.intensity !== undefined && form.intensity >= 85 && form.intensity <= 100) {
-        data.append("intensity", form.intensity.toString());
-      } else {
-        data.append("intensity", "");
-      }
-      if (form.complexity !== null && form.complexity !== undefined && form.complexity >= 85 && form.complexity <= 100) {
-        data.append("complexity", form.complexity.toString());
-      } else {
-        data.append("complexity", "");
-      }
+      // Only send BLIK ratings if they are valid values (80-100), otherwise send empty string
+      const isValidBLIKValue = (value: number | null | undefined): boolean => {
+        if (value === null || value === undefined) return false;
+        return value >= 80 && value <= 100;
+      };
+      
+      const balanceValue = isValidBLIKValue(form.balance) ? form.balance!.toString() : "";
+      const lengthValue = isValidBLIKValue(form.length) ? form.length!.toString() : "";
+      const intensityValue = isValidBLIKValue(form.intensity) ? form.intensity!.toString() : "";
+      const complexityValue = isValidBLIKValue(form.complexity) ? form.complexity!.toString() : "";
+      
+      console.log("[WineDetails] Sending BLIK values:", {
+        balance: balanceValue,
+        length: lengthValue,
+        intensity: intensityValue,
+        complexity: complexityValue,
+        balanceRaw: form.balance,
+        lengthRaw: form.length,
+        intensityRaw: form.intensity,
+        complexityRaw: form.complexity,
+      });
+      
+      data.append("balance", balanceValue);
+      data.append("length", lengthValue);
+      data.append("intensity", intensityValue);
+      data.append("complexity", complexityValue);
 
       // Hvis vi har en wineId, opdater vinen
       if (wineId) {
@@ -277,35 +288,140 @@ export const WineDetailsExperience = ({
         if (initialWine?.image_url && !capturedBlobRef.current) {
           data.append("existingImageUrl", initialWine.image_url);
         }
-        await updateWineAction(data);
-        setIsSaving(false);
-        router.push("/");
+        
+        // Tjek om producer, appellation eller vintage er ændret
+        const hasProducerChanged = form.producer !== (initialWine?.producer ?? "");
+        const hasAppellationChanged = form.appellation !== (initialWine?.appellation ?? "");
+        const hasVintageChanged = form.vintage !== (initialWine?.vintage ?? "");
+        const shouldRegenerateReviews = hasProducerChanged || hasAppellationChanged || hasVintageChanged;
+        
+        // Hvis nogle af felterne er ændret, regenerer wine critics reviews FØR gemning
+        if (shouldRegenerateReviews) {
+          try {
+            console.log("[WineDetails] Regenerating wine critic reviews due to changes:", {
+              producer: hasProducerChanged,
+              appellation: hasAppellationChanged,
+              vintage: hasVintageChanged,
+            });
+            
+            const regenerateResponse = await fetch("/api/wine-critic-reviews", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                wineId,
+                forceRegenerate: true,
+                wineData: {
+                  producer: form.producer,
+                  cuvee: form.cuvee,
+                  appellation: form.appellation,
+                  vintage: form.vintage,
+                  country: form.country,
+                  wine_district: form.wine_district,
+                  grapes: form.grapes,
+                  type: form.type,
+                },
+              }),
+            });
+            
+            if (!regenerateResponse.ok) {
+              console.warn("[WineDetails] Failed to regenerate reviews, continuing with save:", regenerateResponse.status);
+              // Fortsæt med gemning alligevel - reviews kan regenereres senere
+            } else {
+              console.log("[WineDetails] Successfully regenerated wine critic reviews");
+            }
+          } catch (regenerateErr) {
+            console.error("[WineDetails] Error regenerating reviews, continuing with save:", regenerateErr);
+            // Fortsæt med gemning alligevel - reviews kan regenereres senere
+          }
+        }
+        
+        console.log("[WineDetails] Calling updateWineAction with wineId:", wineId);
+        
+        // Call server action with Promise.race to handle timeouts and Server Components errors
+        // Server Components errors often occur AFTER successful updates during re-rendering
+        const updatePromise = updateWineAction(data);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Timeout")), 10000)
+        );
+        
+        try {
+          const result = await Promise.race([updatePromise, timeoutPromise]) as { ok: boolean; error?: string } | null;
+          
+          if (result && result.ok) {
+            // Update succeeded - navigate immediately before any Server Components re-render
+            console.log("[WineDetails] Update succeeded - navigating immediately");
+            setIsSaving(false);
+            // Use setTimeout(0) to ensure state update happens before navigation
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 0);
+            return;
+          } else if (result && !result.ok) {
+            // Real error from server action
+            console.error("[WineDetails] Update failed:", result.error);
+            setIsSaving(false);
+            setError(result.error || "Kunne ikke opdatere vinen. Prøv igen.");
+            return;
+          } else {
+            // No result (shouldn't happen)
+            console.warn("[WineDetails] No result returned - navigating anyway");
+            setIsSaving(false);
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 0);
+            return;
+          }
+        } catch (err: any) {
+          // Exception caught - likely a Server Components render error
+          // These often occur AFTER successful updates, so assume success
+          console.warn("[WineDetails] Exception caught (likely Server Components error):", {
+            message: err?.message,
+            digest: err?.digest,
+            name: err?.name,
+          });
+          
+          // Check if it's explicitly a Server Components error
+          const isServerComponentsError = err?.digest && 
+            typeof err.digest === 'string' &&
+            (err.digest.includes('NEXT_REDIRECT') || 
+             err.digest.includes('DYNAMIC_SERVER_USAGE') ||
+             err.message?.includes('Server Components'));
+          
+          // Reset state and navigate - assume update succeeded
+          setIsSaving(false);
+          if (isServerComponentsError) {
+            // Definitely a Server Components error - navigate immediately
+            console.warn("[WineDetails] Server Components error - assuming update succeeded");
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 0);
+          } else {
+            // Unknown error - still navigate but show message
+            console.error("[WineDetails] Unknown error:", err);
+            setError("Fejl ved gemning. Tjek om vinen blev gemt.");
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 2000);
+          }
+          return;
+        }
       } else {
         // Opret ny vin
         const result = await saveWineAction(data);
         
-        if (!result) {
-          throw new Error("Ingen respons fra serveren");
+        // Hvis vi får en result tilbage, betyder det at gemningen lykkedes
+        // Selv hvis der er en fejl i server component rendering, vil vinen stadig være gemt
+        if (result && result.ok && result.wineId) {
+          setIsSaving(false);
+          
+          // Brug window.location.href for at undgå Server Components render fejl
+          // Dette giver en ren full page reload og omgår Next.js cache issues
+          window.location.href = `/wines/${result.wineId}/edit`;
+          return;
         }
         
-        if (!result.ok) {
-          throw new Error("Serveren returnerede en fejl");
-        }
-        
-        if (!result.wineId) {
-          throw new Error("Vinen blev gemt, men mangler ID. Prøv at opdatere siden.");
-        }
-        
-        // Sæt wineId så wine critics kan vises
-        setWineId(result.wineId);
-        
-        // Refresh router cache før redirect
-        router.refresh();
-        
-        // Redirect til edit siden så brugeren kan se wine critics sektionen
-        setTimeout(() => {
-          router.push(`/wines/${result.wineId}/edit`);
-        }, 300);
+        // Hvis vi ikke får et valid result, vis fejl
+        throw new Error("Kunne ikke gemme vinen. Prøv igen.");
       }
     } catch (err) {
       console.error("Fejl i handleSave:", err);
@@ -323,8 +439,17 @@ export const WineDetailsExperience = ({
   const shouldHighlightMissing = highlightMissing;
   const highlightClass = (key: keyof FormShape) =>
     shouldHighlightMissing && missingFields.has(key)
-      ? "border-rose-300 bg-rose-50 focus:border-rose-400"
+      ? "border-rose-400/50 bg-rose-500/10 focus:border-rose-300"
       : "";
+
+  const blicScores = [form.balance, form.length, form.intensity, form.complexity].filter(
+    (score): score is number => score !== null && score !== undefined && score >= 80 && score <= 100,
+  );
+  const averageBlic =
+    blicScores.length > 0
+      ? blicScores.reduce((sum, score) => sum + score, 0) / blicScores.length
+      : null;
+  const blicDisplay = averageBlic ? (averageBlic / 10).toFixed(1) : null;
 
   const scanningLink = (mode: "camera" | "upload") =>
     `/scan/${mode}?redirect=${encodeURIComponent(redirectPath)}`;
@@ -391,21 +516,21 @@ export const WineDetailsExperience = ({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-16 px-4 sm:gap-8 sm:pb-20 overflow-x-hidden">
-      <header className="space-y-4">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 overflow-x-hidden px-4 pb-20 text-white sm:gap-8">
+      <header className="space-y-5">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-[#6B7280] hover:text-[#DC2626] font-medium"
+          className="inline-flex items-center gap-2 text-sm font-medium text-white/60 hover:text-white"
         >
           ← Tilbage
         </Link>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#DC2626] sm:text-3xl lg:text-4xl xl:text-5xl">
+            <h1 className="text-2xl font-semibold text-white sm:text-3xl lg:text-4xl">
               {initialWine?.producer || form.producer || "Ny vin"}
             </h1>
             {(form.cuvee || form.appellation) && (
-              <p className="mt-2 text-base text-[#6B7280] font-medium sm:text-lg lg:text-xl">
+              <p className="mt-2 text-base font-medium text-white/60 sm:text-lg">
                 {form.cuvee || form.appellation}
               </p>
             )}
@@ -416,7 +541,7 @@ export const WineDetailsExperience = ({
       <div className="grid gap-6 sm:gap-8 lg:grid-cols-[1.2fr_1fr]">
         <div className="space-y-6">
           {/* Billede sektion */}
-          <div className="relative aspect-[3/4] w-full max-w-sm mx-auto overflow-hidden rounded-xl bg-[#F9FAFB]">
+          <div className="relative mx-auto aspect-[3/4] w-full max-w-sm overflow-hidden rounded-[26px] border border-white/10 bg-[#0f0d12] shadow-[var(--shadow-card)]">
             {capturedImage ? (
                 capturedImage.startsWith("blob:") ? (
                   <img
@@ -434,20 +559,33 @@ export const WineDetailsExperience = ({
                 />
                 )
               ) : (
-                <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-[#6B7280]">
+                <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-white/60">
                   <ImageIcon className="h-8 w-8" />
                   <p className="px-8 text-sm">
                     Intet billede endnu. Brug knapperne nedenfor for at scanne eller uploade.
                 </p>
               </div>
             )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            <div className="absolute bottom-4 left-4 z-20 flex flex-wrap items-center gap-2">
+              {form.vintage && (
+                <span className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80">
+                  Vintage {form.vintage}
+                </span>
+              )}
+              {blicDisplay && (
+                <span className="rounded-full border border-white/15 bg-[#b21b3a] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white">
+                  {blicDisplay} PTS
+                </span>
+              )}
+            </div>
             </div>
 
             {/* Billede actions */}
             <div className="flex flex-wrap justify-center gap-2">
               <Button
                 asChild
-                className="rounded-full border border-[#E5E7EB] bg-white px-4 text-xs font-semibold text-[#1f2937] hover:bg-[#F9FAFB]"
+                className="rounded-full border border-white/10 bg-white/5 px-4 text-xs font-semibold uppercase tracking-[0.18em] text-white/70 hover:bg-white/10"
               >
                 <Link prefetch={false} href={scanningLink("camera")}>
                 <Camera className="mr-2 h-4 w-4" />
@@ -456,7 +594,7 @@ export const WineDetailsExperience = ({
               </Button>
               <Button
                 asChild
-                className="rounded-full border border-[#E5E7EB] bg-white px-4 text-xs font-semibold text-[#1f2937] hover:bg-[#F9FAFB]"
+                className="rounded-full border border-white/10 bg-white/5 px-4 text-xs font-semibold uppercase tracking-[0.18em] text-white/70 hover:bg-white/10"
               >
                 <Link prefetch={false} href={scanningLink("upload")}>
                   <FileUp className="mr-2 h-4 w-4" />
@@ -468,7 +606,7 @@ export const WineDetailsExperience = ({
                   type="button"
                   onClick={handleAnalyzeImage}
                   disabled={isAnalyzing}
-                  className="rounded-full border border-[#DC2626] bg-[#DC2626] px-4 text-xs font-semibold text-white hover:bg-[#B91C1C] disabled:opacity-50"
+                  className="rounded-full border border-[#fb7185] bg-[#e11d48] px-4 text-xs font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#fb7185] disabled:opacity-50"
                 >
                   {isAnalyzing ? (
                     <>
@@ -487,9 +625,9 @@ export const WineDetailsExperience = ({
 
             {/* AI noter / Description */}
             {analysis?.label_summary ? (
-              <div className="rounded-[10px] bg-[#FFFFFF] p-4 sm:p-6 lg:p-7">
-                <h2 className="mb-3 text-[20px] font-semibold text-[#000000] leading-[25px] tracking-[0.38px]">Description</h2>
-                <p className="text-[15px] leading-[20px] tracking-[-0.24px] text-[#3C3C43]">{analysis.label_summary}</p>
+              <div className="rounded-[18px] border border-white/10 bg-[#151018] p-4 shadow-[var(--shadow-subtle)] sm:p-6 lg:p-7">
+                <h2 className="mb-3 text-[18px] font-semibold leading-[24px] tracking-[0.2px] text-white">Description</h2>
+                <p className="text-[14px] leading-[20px] tracking-[-0.1px] text-white/60">{analysis.label_summary}</p>
               </div>
             ) : null}
           </div>
@@ -533,11 +671,11 @@ export const WineDetailsExperience = ({
             })()}
 
             {/* Smagsnote Section */}
-            <div className="rounded-[10px] bg-[#FFFFFF] p-4 sm:p-6 lg:p-7">
-              <h2 className="mb-3 text-[20px] font-semibold text-[#000000] leading-[25px] tracking-[0.38px]">Smagsnote</h2>
+            <div className="rounded-[18px] border border-white/10 bg-[#151018] p-4 shadow-[var(--shadow-subtle)] sm:p-6 lg:p-7">
+              <h2 className="mb-3 text-[18px] font-semibold leading-[24px] tracking-[0.2px] text-white">Smagsnote</h2>
               <label className="flex flex-col gap-2">
                 <textarea
-                  className="min-h-[120px] rounded-[10px] border-0 bg-[#F2F2F7] px-4 py-3 text-[17px] text-[#000000] leading-[22px] outline-none transition-colors focus:bg-[#FFFFFF] focus:ring-2 focus:ring-[#DC2626] focus:ring-inset resize-none"
+                  className="min-h-[120px] rounded-[14px] border border-white/10 bg-white/5 px-4 py-3 text-[15px] text-white leading-[22px] outline-none transition-colors focus:border-[#fb7185] focus:bg-white/10 focus:ring-2 focus:ring-[#fb7185]/30 focus:ring-inset resize-none"
                   value={form.smagsnote ?? ''}
                   onChange={(event) =>
                     updateForm("smagsnote", event.target.value)
@@ -548,8 +686,8 @@ export const WineDetailsExperience = ({
             </div>
 
             {/* Form sektion */}
-            <div className="rounded-[10px] bg-[#FFFFFF] p-4 sm:p-6 lg:p-7">
-              <h2 className="mb-4 text-[20px] font-semibold text-[#000000] leading-[25px] tracking-[0.38px] sm:mb-6">Rediger oplysninger</h2>
+            <div className="rounded-[18px] border border-white/10 bg-[#151018] p-4 shadow-[var(--shadow-subtle)] sm:p-6 lg:p-7">
+              <h2 className="mb-4 text-[18px] font-semibold leading-[24px] tracking-[0.2px] text-white sm:mb-6">Rediger oplysninger</h2>
 
             <form
               onSubmit={(event) => {
@@ -559,7 +697,7 @@ export const WineDetailsExperience = ({
               className="flex flex-col gap-4"
             >
               <label className="flex flex-col gap-2.5">
-                <span className="text-[13px] font-medium text-[#000000] leading-[18px] uppercase tracking-[0.08em]">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                   Producent
                 </span>
                 <input
@@ -567,7 +705,7 @@ export const WineDetailsExperience = ({
                   value={form.producer}
                   onChange={(event) => updateForm("producer", event.target.value)}
                   placeholder="fx Domaine de la Romanée-Conti"
-                  className={`rounded-[10px] border-0 bg-[#F2F2F7] px-4 py-3 text-[17px] text-[#000000] leading-[22px] outline-none transition-colors focus:bg-[#FFFFFF] focus:ring-2 focus:ring-[#DC2626] focus:ring-inset ${highlightClass("producer")}`}
+                  className={`rounded-[14px] border border-white/10 bg-white/5 px-4 py-3 text-[15px] text-white leading-[22px] outline-none transition-colors focus:border-[#fb7185] focus:bg-white/10 focus:ring-2 focus:ring-[#fb7185]/30 focus:ring-inset ${highlightClass("producer")}`}
                 />
               </label>
 
@@ -576,7 +714,7 @@ export const WineDetailsExperience = ({
                 onClick={(e) => e.stopPropagation()}
                 onFocus={(e) => e.stopPropagation()}
               >
-                <span className="text-[13px] font-medium text-[#000000] leading-[18px] uppercase tracking-[0.08em]">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                   Appellation
                 </span>
                 <AutocompleteInput
@@ -589,7 +727,7 @@ export const WineDetailsExperience = ({
                     }
                   }}
                   placeholder="fx Bourgogne AOC"
-                  className={`rounded-[10px] border-0 bg-[#F2F2F7] px-4 py-3 text-[17px] text-[#000000] leading-[22px] outline-none transition-colors focus:bg-[#FFFFFF] focus:ring-2 focus:ring-[#DC2626] focus:ring-inset ${highlightClass("appellation")}`}
+                  className={`rounded-[14px] border border-white/10 bg-white/5 px-4 py-3 text-[15px] text-white leading-[22px] outline-none transition-colors focus:border-[#fb7185] focus:bg-white/10 focus:ring-2 focus:ring-[#fb7185]/30 focus:ring-inset ${highlightClass("appellation")}`}
                   fetchSuggestions={fetchAppellations}
                   minChars={1}
                   showOnFocus={false}
@@ -597,11 +735,11 @@ export const WineDetailsExperience = ({
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="text-[13px] font-medium text-[#000000] leading-[18px] uppercase tracking-[0.08em]">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                   Cuvée
                 </span>
                 <input
-                    className={`rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5 text-sm text-[#1f2937] outline-none transition focus:border-[#DC2626] focus:bg-white ${highlightClass("cuvee")}`}
+                    className={`rounded-[14px] border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none transition focus:border-[#fb7185] focus:bg-white/10 ${highlightClass("cuvee")}`}
                   value={form.cuvee}
                   onChange={(event) => updateForm("cuvee", event.target.value)}
                   placeholder="fx Der Elefant im Porzellanladen"
@@ -610,11 +748,11 @@ export const WineDetailsExperience = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-2">
-                  <span className="text-[13px] font-medium text-[#000000] leading-[18px] uppercase tracking-[0.08em]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                     Årgang
                   </span>
                   <input
-                    className={`rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5 text-sm text-[#1f2937] outline-none transition focus:border-[#DC2626] focus:bg-white ${highlightClass("vintage")}`}
+                    className={`rounded-[14px] border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none transition focus:border-[#fb7185] focus:bg-white/10 ${highlightClass("vintage")}`}
                     value={form.vintage}
                     onChange={(event) =>
                       updateForm("vintage", event.target.value)
@@ -624,11 +762,11 @@ export const WineDetailsExperience = ({
                 </label>
 
                   <label className="flex flex-col gap-2">
-                    <span className="text-[13px] font-medium text-[#000000] leading-[18px] uppercase tracking-[0.08em]">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                       Type
                     </span>
                     <select
-                      className="rounded-[10px] border-0 bg-[#F2F2F7] px-4 py-3 text-[17px] text-[#000000] leading-[22px] outline-none transition-colors focus:bg-[#FFFFFF] focus:ring-2 focus:ring-[#DC2626] focus:ring-inset"
+                      className="rounded-[14px] border border-white/10 bg-white/5 px-4 py-3 text-[15px] text-white leading-[22px] outline-none transition-colors focus:border-[#fb7185] focus:bg-white/10 focus:ring-2 focus:ring-[#fb7185]/30 focus:ring-inset"
                       value={form.type}
                     onChange={(event) => updateForm("type", event.target.value)}
                       required
@@ -643,11 +781,11 @@ export const WineDetailsExperience = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-2">
-                  <span className="text-[13px] font-medium text-[#000000] leading-[18px] uppercase tracking-[0.08em]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                     Land
                   </span>
                   <input
-                      className={`rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5 text-sm text-[#1f2937] outline-none transition focus:border-[#DC2626] focus:bg-white ${highlightClass("country")}`}
+                      className={`rounded-[14px] border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none transition focus:border-[#fb7185] focus:bg-white/10 ${highlightClass("country")}`}
                     value={form.country}
                     onChange={(event) =>
                       updateForm("country", event.target.value)
@@ -657,11 +795,11 @@ export const WineDetailsExperience = ({
                 </label>
 
                 <label className="flex flex-col gap-2">
-                  <span className="text-[13px] font-medium text-[#000000] leading-[18px] uppercase tracking-[0.08em]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                     Vindistrikt
                   </span>
                   <input
-                      className={`rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5 text-sm text-[#1f2937] outline-none transition focus:border-[#DC2626] focus:bg-white ${highlightClass("wine_district")}`}
+                      className={`rounded-[14px] border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none transition focus:border-[#fb7185] focus:bg-white/10 ${highlightClass("wine_district")}`}
                     value={form.wine_district}
                     onChange={(event) =>
                       updateForm("wine_district", event.target.value)
@@ -673,11 +811,11 @@ export const WineDetailsExperience = ({
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-2">
-                  <span className="text-[13px] font-medium text-[#000000] leading-[18px] uppercase tracking-[0.08em]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                     Druer (fordeling)
                   </span>
                   <textarea
-                      className={`h-24 rounded-[10px] border-0 bg-[#F2F2F7] px-4 py-3 text-[17px] text-[#000000] leading-[22px] outline-none transition-colors focus:bg-[#FFFFFF] focus:ring-2 focus:ring-[#007AFF] focus:ring-inset resize-none ${highlightClass("grapes")}`}
+                      className={`h-24 rounded-[14px] border border-white/10 bg-white/5 px-4 py-3 text-[15px] text-white leading-[22px] outline-none transition-colors focus:border-[#fb7185] focus:bg-white/10 focus:ring-2 focus:ring-[#fb7185]/30 focus:ring-inset resize-none ${highlightClass("grapes")}`}
                     value={form.grapes}
                     onChange={(event) =>
                       updateForm("grapes", event.target.value)
@@ -687,11 +825,11 @@ export const WineDetailsExperience = ({
                 </label>
                 <div className="grid grid-rows-2 gap-3">
                   <label className="flex flex-col gap-2">
-                    <span className="text-[13px] font-medium text-[#000000] leading-[18px] uppercase tracking-[0.08em]">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                       Alkohol (%)
                     </span>
                     <input
-                      className={`rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5 text-sm text-[#1f2937] outline-none transition focus:border-[#DC2626] focus:bg-white ${highlightClass("alcohol")}`}
+                      className={`rounded-[14px] border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none transition focus:border-[#fb7185] focus:bg-white/10 ${highlightClass("alcohol")}`}
                       value={form.alcohol}
                       onChange={(event) =>
                         updateForm("alcohol", event.target.value)
@@ -704,7 +842,7 @@ export const WineDetailsExperience = ({
                     onClick={(e) => e.stopPropagation()}
                     onFocus={(e) => e.stopPropagation()}
                   >
-                    <span className="text-[13px] font-medium text-[#000000] leading-[18px] uppercase tracking-[0.08em]">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                       Vinmark
                     </span>
                     <AutocompleteInput
@@ -714,7 +852,7 @@ export const WineDetailsExperience = ({
                         updateForm("vineyard", value);
                       }}
                       placeholder="fx G-Max"
-                      className={`rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5 text-sm text-[#1f2937] outline-none transition focus:border-[#DC2626] focus:bg-white ${highlightClass("vineyard")}`}
+                      className={`rounded-[14px] border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none transition focus:border-[#fb7185] focus:bg-white/10 ${highlightClass("vineyard")}`}
                       fetchSuggestions={fetchVineyards}
                       minChars={1}
                       showOnFocus={!!form.appellation}
@@ -724,12 +862,12 @@ export const WineDetailsExperience = ({
               </div>
 
               <label className="flex flex-col gap-2">
-                <span className="text-[13px] font-medium text-[#000000] leading-[18px] uppercase tracking-[0.08em]">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                   Dato
                 </span>
                 <input
                   type="date"
-                  className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5 text-sm text-[#1f2937] outline-none transition focus:border-[#DC2626] focus:bg-white"
+                  className="rounded-[14px] border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none transition focus:border-[#fb7185] focus:bg-white/10"
                   value={form.consumed_date}
                   onChange={(event) =>
                     updateForm("consumed_date", event.target.value)
@@ -740,7 +878,7 @@ export const WineDetailsExperience = ({
               <Button
                 type="submit"
                 disabled={isSaving}
-                className="mt-6 h-11 rounded-full bg-[#DC2626] px-6 text-sm font-semibold text-white hover:bg-[#B91C1C] transition"
+                className="mt-6 h-11 rounded-full bg-[#e11d48] px-6 text-xs font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#fb7185] transition"
               >
                 {isSaving ? (
                   <>
@@ -756,11 +894,11 @@ export const WineDetailsExperience = ({
             </form>
 
             {error ? (
-              <div className="flex items-start gap-3 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-4 text-sm text-red-800 shadow-sm">
-                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-100 shadow-sm">
+                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-rose-200" />
                 <div className="flex-1">
                   <p className="font-semibold mb-1">Fejl ved gemning</p>
-                  <p className="text-red-700">{error}</p>
+                  <p className="text-rose-100/80">{error}</p>
                 </div>
               </div>
             ) : null}

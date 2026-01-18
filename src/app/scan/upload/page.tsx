@@ -22,15 +22,18 @@ export default function UploadScanPage({ searchParams }: UploadScanPageProps) {
   const redirect = sanitizeRedirect(searchParams?.redirect);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 pb-24 pt-8 sm:px-10 lg:px-16">
+    <main className="flex min-h-screen w-full flex-col gap-6 px-4 pb-24 pt-6 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between">
         <Link
           href="/"
-          className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.3em] text-white/70 transition hover:bg-white/20"
+          className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white/70 transition hover:bg-white/10"
         >
           <ChevronLeft className="h-4 w-4" />
-          Tilbage til samlingen
+          Tilbage
         </Link>
+        <span className="text-xs font-semibold uppercase tracking-[0.3em] text-white/40">
+          Upload label
+        </span>
       </div>
 
       <ScanExperience mode="upload" redirect={redirect} />
